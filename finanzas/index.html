@@ -258,6 +258,8 @@ anual(){const Y=txs().filter(t=>t.date?.startsWith(year+'')),inc=sum(Y,'ingreso'
  <p class="lede" style="margin-top:10px">Gasto medio: <b class="num" style="color:var(--ink)">${eur0(out/active)} al mes</b>.</p>
  ${C.length?`<h2>Por categoría <small>media mensual</small></h2><div class="cats">${C.map(([c,v])=>`<button class="cat" data-act="catGo" data-v="${esc(c)}"><span class="dot" style="background:${color(c)}"></span><span class="nm">${esc(c)}</span><span class="am num">${eur0(v)}</span><span class="sub"><span class="bar"><i style="width:${v/C[0][1]*100}%;background:${color(c)}"></i></span><span class="num">${eur0(v/active)}/mes</span></span></button>`).join('')}</div>`:''}`},
 ajustes(){return `<h1>Ajustes</h1>${accountHTML()}
+ <h2>Importar un archivo</h2><p class="lede">Si tienes un archivo .csv con tus movimientos (por ejemplo, el que te ha preparado Claude o uno descargado de Google Sheets), elígelo aquí.</p>
+ <label class="btn pri" style="cursor:pointer">Elegir archivo<input type="file" id="impF" accept=".csv,.tsv,.txt,text/csv,text/plain" style="position:absolute;opacity:0;width:1px;height:1px"></label>
  <h2>Importar desde tu hoja</h2><p class="lede">Abre tu «Control de Gastos» en el ordenador, en la pestaña <b style="color:var(--ink)">Datos entrada</b> selecciona todo (Cmd/Ctrl + A), cópialo y pégalo aquí. Reconozco la fecha, la descripción, el importe y la categoría. Si importas dos veces lo mismo, no se duplica.</p>
  <textarea class="in" id="impT" placeholder="Pega aquí las filas copiadas…"></textarea><p class="lede" id="impP"></p>
  <div class="btns"><button class="btn pri" data-act="doImp">Importar</button></div>
@@ -375,7 +377,9 @@ const onField=e=>{const el=e.target;
  if(!sheet||!el.dataset||!el.dataset.f)return;const f=el.dataset.f,v=el.type==='checkbox'?el.checked:el.value;sheet.d[f]=v;
  if(sheet.mode==='tx'&&f==='desc'&&!sheet.d.cat){const m=txs().filter(t=>t.type===sheet.d.type&&norm(t.desc)===norm(v)).sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0];
   if(m){sheet.d.cat=m.cat;document.querySelectorAll('#sheet .chip[data-act="pickCat"]').forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.v===m.cat)))}}};
-document.addEventListener('input',onField);document.addEventListener('change',e=>{if(e.target.id!=='qIn')onField(e)});
+document.addEventListener('input',onField);
+document.addEventListener('change',e=>{if(e.target.id!=='impF'||!e.target.files[0])return;const fr=new FileReader();fr.onload=()=>{const L=parseSheet(String(fr.result));
+ if(!L.length){toast('No encuentro movimientos en ese archivo');return}const n=L.filter(t=>!items.has(t.id));n.forEach(t=>save(t,true));render();toast(n.length?n.length+' movimientos importados':'Ya estaba todo importado')};fr.readAsText(e.target.files[0])});document.addEventListener('change',e=>{if(e.target.id!=='qIn')onField(e)});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sheet)closeSheet();if(e.key==='Enter'&&sheet&&e.target.tagName==='INPUT'&&e.target.type!=='checkbox'&&!e.target.list){const p=$('#sheet .btn.pri');if(p){e.preventDefault();p.click()}}});
 document.addEventListener('submit',e=>{const f=e.target;if(f.id==='authF')return;e.preventDefault();
  if(f.dataset.form==='addCat'){const c=f.c.value.trim();if(!c)return;const m=cats();if(m.gasto.some(x=>norm(x)===norm(c))){toast('Ya existe');return}save({id:'cats',kind:'meta',gasto:[...m.gasto,c],ingreso:m.ingreso});toast('Categoría añadida')}});
